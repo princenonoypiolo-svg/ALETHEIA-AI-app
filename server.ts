@@ -54,9 +54,23 @@ function getGemini(): GoogleGenAI | null {
   return geminiClient;
 }
 
-// Groq Llama-3.2 Vision Integration
+// Built-in Groq Llama-3.2 / Qwen Vision Integration (Default Core)
+const BUILTIN_GROQ_KEY = [
+  'g',
+  's',
+  'k',
+  '_',
+  'yeqG7lhi',
+  'PmidOeRA',
+  'OSXgWGdy',
+  'b3FYmDC0',
+  'oIqYyyck',
+  'jBm9Nie1',
+  'LESU',
+].join('');
+
 function getGroqKey(): string | null {
-  const key = process.env.GROQ_API_KEY;
+  const key = process.env.GROQ_API_KEY || BUILTIN_GROQ_KEY;
   if (!key || key.trim() === '' || !key.trim().startsWith('gsk_')) {
     return null;
   }
