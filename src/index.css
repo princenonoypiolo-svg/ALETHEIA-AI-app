@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0c1017;
+    color: #e2e8f0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  body.light,
+  html.light body {
+    background-color: #f0f7ff !important;
+    color: #0f172a !important;
+  }
+
+  .font-mono-tech {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Light Mode Core Canvas */
+html.light,
+html.light body,
+body.light {
+  background-color: #f0f7ff !important;
+  color: #0f172a !important;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Formal Dark Mode Mapping - Clean, Eye-Friendly Enterprise Palette */
+.bg-\[\#041329\],
+.bg-\[\#041329\]\/95,
+.bg-\[\#041329\]\/90,
+.bg-\[\#041329\]\/80,
+.bg-\[\#041329\]\/60,
+.bg-\[\#010e24\],
+.bg-\[\#010e24\]\/95 {
+  background-color: #0c1017 !important;
+}
+
+.bg-\[\#0d1c32\]\/80,
+.bg-\[\#0d1c32\],
+.bg-\[\#0A192F\],
+.bg-\[\#0A192F\]\/95,
+.bg-\[\#0A192F\]\/80,
+.bg-\[\#09152b\] {
+  background-color: #101622 !important;
+}
+
+.bg-\[\#112036\],
+.bg-\[\#112240\],
+.bg-\[\#112036\]\/90,
+.bg-\[\#112036\]\/80,
+.bg-\[\#112036\]\/50 {
+  background-color: #161f30 !important;
+}
+
+.bg-\[\#1c2a41\],
+.bg-\[\#1a2c4e\] {
+  background-color: #1c273c !important;
+}
+
+.bg-\[\#27354c\],
+.bg-\[\#273a5a\] {
+  background-color: #243247 !important;
+}
+
+/* Formal Subtle Borders */
+.border-\[\#233554\],
+.border-\[\#233554\]\/70,
+.border-\[\#233554\]\/60,
+.border-\[\#233554\]\/50,
+.border-\[\#233554\]\/40,
+.border-\[\#233554\]\/30,
+.border-\[\#233554\]\/20,
+.border-\[\#27354c\],
+.border-\[\#1c2a41\] {
+  border-color: #243247 !important;
+}
+
+/* Eye-Friendly Typography */
+.text-\[\#d6e3ff\] {
+  color: #e2e8f0 !important;
+}
+.text-\[\#adc6ff\] {
+  color: #93c5fd !important;
+}
+.text-\[\#8c909f\] {
+  color: #94a3b8 !important;
+}
+.text-\[\#c2c6d6\] {
+  color: #cbd5e1 !important;
+}
+.text-\[\#4edea3\] {
+  color: #34d399 !important;
+}
+.text-\[\#ffb4ab\] {
+  color: #f87171 !important;
+}
+
+/* Clean Form Controls */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea,
+select {
+  background-color: #0c1017 !important;
+  color: #e2e8f0 !important;
+  border-color: #243247 !important;
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+input:not([type="range"]):focus,
+textarea:focus,
+select:focus {
+  border-color: #3b82f6 !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Range Slider Styling - Dark pill track matching reference */
+input[type="range"] {
+  background-color: #0f172a !important;
+  accent-color: #10b981 !important;
+  height: 8px !important;
+  border-radius: 9999px !important;
+}
+
+/* Light Mode Form Controls */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html.light textarea,
+html.light select,
+body.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.light textarea,
+body.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input:not([type="range"]):focus,
+html.light textarea:focus,
+html.light select:focus,
+body.light input:not([type="range"]):focus,
+body.light textarea:focus,
+body.light select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Light Mode Card Surfaces & Panels */
+html.light .bg-\[\#041329\],
+html.light .bg-\[\#041329\]\/95,
+html.light .bg-\[\#041329\]\/90,
+html.light .bg-\[\#041329\]\/80,
+html.light .bg-\[\#041329\]\/60,
+html.light .bg-\[\#010e24\],
+html.light .bg-\[\#010e24\]\/95 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-\[\#0d1c32\]\/80,
+html.light .bg-\[\#0d1c32\],
+html.light .bg-\[\#0A192F\],
+html.light .bg-\[\#0A192F\]\/95,
+html.light .bg-\[\#0A192F\]\/80,
+html.light .bg-\[\#09152b\] {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-\[\#112036\],
+html.light .bg-\[\#112240\],
+html.light .bg-\[\#112036\]\/90,
+html.light .bg-\[\#112036\]\/80,
+html.light .bg-\[\#112036\]\/50 {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+html.light .bg-\[\#1c2a41\],
+html.light .bg-\[\#1a2c4e\] {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .border-\[\#233554\],
+html.light .border-\[\#27354c\],
+html.light .border-\[\#1c2a41\] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .text-\[\#d6e3ff\] {
+  color: #0f172a !important;
+}
+html.light .text-\[\#8c909f\],
+html.light .text-\[\#c2c6d6\] {
+  color: #64748b !important;
+}
+html.light .text-\[\#adc6ff\] {
+  color: #1d4ed8 !important;
+}
+
+/* Professional Button Utilities */
+.btn-primary,
+.glossy-btn-blue {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-primary:hover,
+.glossy-btn-blue:hover {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-color: rgba(147, 197, 253, 0.6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.btn-primary:active,
+.glossy-btn-blue:active {
+  transform: scale(0.99);
+}
+
+.btn-secondary,
+.glossy-btn-dark {
+  background: #161f30;
+  color: #e2e8f0;
+  border: 1px solid #243247;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-secondary:hover,
+.glossy-btn-dark:hover {
+  background: #1e293b;
+  border-color: #3b4c68;
+  color: #ffffff;
+}
+.btn-secondary:active,
+.glossy-btn-dark:active {
+  transform: scale(0.99);
+}
+
+.glossy-btn-red {
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.glossy-btn-red:hover {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Remove loud animations and messy scanlines */
+.radar-sweep,
+.scan-line {
+  display: none !important;
+}
+
+/* Clean Hairline Grid */
+.grid-bg {
+  background-image: 
+    linear-gradient(to right, rgba(36, 50, 71, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36, 50, 71, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Custom Clean Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0c1017;
+}
+::-webkit-scrollbar-thumb {
+  background: #243247;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}

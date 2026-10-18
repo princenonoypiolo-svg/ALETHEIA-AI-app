@@ -1,0 +1,38 @@
+{
+  "project_id": "steel-camp-m1ttq",
+  "collections": [
+    {
+      "name": "users",
+      "document_id": "user_id",
+      "fields": {
+        "uid": "string",
+        "name": "string",
+        "operativeId": "string",
+        "clearance": "string",
+        "bio": "string",
+        "avatarUrl": "string",
+        "theme": "string",
+        "darkMode": "boolean",
+        "updatedAt": "timestamp"
+      }
+    },
+    {
+      "name": "dossiers",
+      "document_id": "auto-generated",
+      "fields": {
+        "name": "string",
+        "status": "string (Clear, Flagged, Unknown, Neutralized)",
+        "threatLevel": "number",
+        "lastSeen": "string",
+        "location": "string",
+        "description": "string",
+        "createdBy": "string (uid)",
+        "createdAt": "timestamp"
+      }
+    }
+  ],
+  "security_rules": {
+    "users": "Users can only read and write their own profile document.",
+    "dossiers": "Any authenticated user can read dossiers. Only the creator can update or delete them, but any authenticated user can create one."
+  }
+}

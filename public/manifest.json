@@ -1,0 +1,25 @@
+{
+  "short_name": "Aletheia AI",
+  "name": "Aletheia - Threat Intelligence & Truth Verification",
+  "description": "Tactical misinformation detection, deepfake vector analysis & media forensic surveillance.",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b0f17",
+  "theme_color": "#111827",
+  "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["utilities", "security", "news"]
+}

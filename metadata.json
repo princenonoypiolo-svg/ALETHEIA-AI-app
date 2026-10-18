@@ -1,0 +1,6 @@
+{
+  "name": "Aletheia",
+  "description": "Tactical misinformation detection and deepfake surveillance console with active vector scanning, cross-reference reports, and intelligence analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
