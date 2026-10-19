@@ -14,6 +14,7 @@ import {
   EyeOff,
   Camera,
   Upload,
+  Cpu,
 } from 'lucide-react';
 import { OperativeProfile, ScanResult } from '../types';
 
@@ -485,17 +486,12 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onKey
     e.preventDefault();
     const clean = apiKey.trim();
     if (!clean || clean.length < 8) {
-      setError('Please provide a valid Groq (gsk_...) or Gemini (AIzaSy...) API key');
+      setError('Please provide a valid Groq API key (starts with gsk_...)');
       return;
     }
 
-    if (clean.startsWith('AQ.')) {
-      setError("This is an internal IDE/OAuth session token ('AQ...'), not an external API key. Please use a Groq API key (starts with 'gsk_...') or Google Gemini API key (starts with 'AIzaSy...').");
-      return;
-    }
-
-    if (!clean.startsWith('gsk_') && !clean.startsWith('AIza')) {
-      setError("Valid keys start with 'gsk_...' (Groq) or 'AIzaSy...' (Google Gemini). Please check your key from Groq Console or Google AI Studio.");
+    if (!clean.startsWith('gsk_')) {
+      setError("Please provide a valid Groq API key starting with 'gsk_...'. You can find yours at console.groq.com/keys.");
       return;
     }
 
@@ -512,20 +508,16 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onKey
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to configure API key');
+        throw new Error(data.error || 'Failed to configure Groq API key');
       }
 
-      setSuccess(
-        clean.startsWith('gsk_')
-          ? 'Groq Llama-3.2 Vision Core successfully verified and armed!'
-          : 'Gemini Multimodal Intelligence Core successfully verified and armed!'
-      );
+      setSuccess('Groq Neural Vision Core successfully verified and armed!');
       onKeyConfigured();
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (err: any) {
-      setError(err?.message || 'Error configuring API key.');
+      setError(err?.message || 'Error configuring Groq API key.');
     } finally {
       setLoading(false);
     }
@@ -546,21 +538,27 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onKey
 
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-[#0A192F] border border-[#4d8eff]/50 flex items-center justify-center text-[#4d8eff] shadow-[0_0_15px_rgba(77,142,255,0.3)]">
-            <Key className="w-5 h-5" />
+            <Cpu className="w-5 h-5" />
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-[#adc6ff] tracking-tight font-['Inter']">
-              Arm Neural Intelligence Core
+              Groq Neural Vision Core
             </h2>
-            <p className="text-xs text-[#8c909f] font-mono-tech">
-              GROQ LLAMA-3.2 VISION &bull; GEMINI MULTIMODAL CORE
+            <p className="text-xs text-emerald-400 font-mono-tech flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              STATUS: PRE-CONFIGURED &amp; ARMED
             </p>
           </div>
         </div>
 
-        <p className="text-xs sm:text-sm text-[#c2c6d6] mb-5 leading-relaxed">
-          Provide your <strong>Groq API Key</strong> or <strong>Google Gemini API Key</strong> to activate live vision AI detection, multi-frame video deepfake forensics, and real-time claim cross-referencing.
-        </p>
+        {/* Active confirmation banner */}
+        <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3.5 mb-5 flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-300 leading-relaxed">
+            <strong className="text-emerald-400 block mb-0.5">Groq API Key Active &amp; Ready</strong>
+            Your app is permanently powered by Groq. You do not need to input any key to scan images, detect deepfakes, or verify intelligence.
+          </div>
+        </div>
 
         {error && (
           <div className="bg-[#ffb4ab]/15 border border-[#ff5451]/40 text-[#ffb4ab] text-xs p-3 rounded-lg mb-4 font-mono-tech">
@@ -578,14 +576,14 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onKey
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-mono-tech text-[#8c909f] uppercase tracking-wider block">
-              Groq (<span className="text-[#4d8eff]">gsk_...</span>) or Gemini (<span className="text-[#4edea3]">AIzaSy...</span>) Key
+              Override / Update Groq Key (<span className="text-[#4d8eff]">gsk_...</span>) [Optional]
             </label>
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="gsk_... or AIzaSy..."
+                placeholder="gsk_... (leave empty to keep current key)"
                 disabled={loading}
                 className="w-full bg-[#0A192F] border border-[#233554] text-[#d6e3ff] placeholder-[#424754] rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:border-[#4d8eff] focus:ring-1 focus:ring-[#4d8eff] pr-10 font-mono-tech shadow-inner"
               />
@@ -597,28 +595,16 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onKey
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono-tech mt-1">
-              Supports <strong className="text-[#4d8eff]">Groq (gsk_...)</strong> or <strong className="text-[#4edea3]">Gemini (AIzaSy...)</strong>.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs font-mono-tech">
+          <div className="pt-1 text-xs font-mono-tech">
             <a
               href="https://console.groq.com/keys"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded bg-[#0A192F] border border-[#233554] text-[#4d8eff] hover:border-[#4d8eff] flex items-center justify-between"
+              className="p-2.5 rounded bg-[#0A192F] border border-[#233554] text-[#4d8eff] hover:border-[#4d8eff] flex items-center justify-between"
             >
-              <span>Get Free Groq Key</span>
-              <span>&rarr;</span>
-            </a>
-            <a
-              href="https://aistudio.google.com/app/apikey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded bg-[#0A192F] border border-[#233554] text-[#4edea3] hover:border-[#4edea3] flex items-center justify-between"
-            >
-              <span>Get Free Gemini Key</span>
+              <span>Groq API Console &amp; Keys</span>
               <span>&rarr;</span>
             </a>
           </div>

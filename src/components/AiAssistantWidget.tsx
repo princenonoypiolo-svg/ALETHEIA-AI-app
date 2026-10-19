@@ -142,7 +142,7 @@ export const AiAssistantWidget: React.FC<AiAssistantWidgetProps> = ({
                     Aletheia Copilot
                   </h3>
                   <span className="text-[11px] text-slate-400 block">
-                    Powered by Gemini Multimodal AI
+                    Powered by Groq Neural Intelligence
                   </span>
                 </div>
               </div>

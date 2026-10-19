@@ -114,12 +114,12 @@ html.light ::-webkit-scrollbar-thumb:hover {
 }
 
 /* Clean Form Controls */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-textarea,
-select {
-  background-color: #0c1017 !important;
-  color: #e2e8f0 !important;
-  border-color: #243247 !important;
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.bg-white),
+html.dark textarea:not(.bg-white),
+html.dark select:not(.bg-white) {
+  background-color: #0c1017;
+  color: #e2e8f0;
+  border-color: #243247;
   border-radius: 8px;
   font-family: inherit;
 }
@@ -147,9 +147,9 @@ html.light select,
 body.light input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 body.light textarea,
 body.light select {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 html.light input:not([type="range"]):focus,

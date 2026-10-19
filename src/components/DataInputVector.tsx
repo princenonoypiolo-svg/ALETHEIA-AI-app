@@ -19,12 +19,16 @@ import {
   Image as ImageIcon,
   Lock,
   Terminal,
-  Activity,
   Check,
   Camera,
+  ClipboardPaste,
+  Globe,
+  Sparkles,
+  Newspaper,
 } from 'lucide-react';
 import { AiSmileyBot } from './AiSmileyBot';
 import { LiveCameraModal } from './LiveCameraModal';
+import { AppHelpGuideModal } from './AppHelpGuideModal';
 import { UrlPreviewData } from '../types';
 
 export interface FilePayload {
@@ -258,6 +262,7 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isHelpGuideOpen, setIsHelpGuideOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [urlPreview, setUrlPreview] = useState<UrlPreviewData | null>(null);
@@ -409,7 +414,21 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
     }
   };
 
-  const handleLoadSample = (sampleType: 'ai_video' | 'ai_image' | 'authentic_photo') => {
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setUrlInput(text.trim());
+          setErrorMsg('');
+        }
+      }
+    } catch {
+      // Ignore if clipboard access not granted
+    }
+  };
+
+  const handleLoadSample = (sampleType: 'ai_video' | 'ai_image' | 'authentic_photo' | 'viral_claim') => {
     setErrorMsg('');
     if (sampleType === 'ai_video') {
       setUrlInput('Analyze video clip for OpenAI Sora / Runway Gen-3 diffusion & deepfake artifacts');
@@ -439,6 +458,12 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
       setSelectedFile(
         new File(['sample'], 'midjourney_portrait_v6.png', { type: 'image/png' })
       );
+    } else if (sampleType === 'viral_claim') {
+      setUrlInput('Viral social media claim: "Sudden $450B offshore treasury withdrawal unverified by central bank archives"');
+      setIsVideo(false);
+      setVideoFrames([]);
+      setSelectedFile(null);
+      setFilePreviewUrl(null);
     } else {
       setUrlInput('Verify authentic Sony camera photograph taken on mountain trail');
       setIsVideo(false);
@@ -532,25 +557,43 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
   };
 
   return (
-    <div className="bg-[#111827] border border-[#243247] rounded-xl p-6 shadow-sm relative overflow-hidden">
-      <div className="relative z-10 space-y-5">
-        {/* Centered AI Smiley Logo :D */}
-        <div className="flex justify-center items-center border-b border-[#243247] pb-3.5 pt-0.5">
-          <AiSmileyBot size="lg" />
+    <div className="bg-white/95 dark:bg-[#0f1728]/95 border border-slate-200/90 dark:border-[#1e2a3f] rounded-2xl p-6 sm:p-7 shadow-xl backdrop-blur-md transition-colors relative overflow-hidden">
+      <div className="relative z-10 space-y-6">
+        
+        {/* Streamlined Clean Header with Waving Mascot where pointed */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-[#1e2a3f] gap-3">
+          <div className="space-y-1.5 min-w-0">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-500 flex-shrink-0" />
+              <span>Truth &amp; Deepfake Verification Scanner</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-300 dark:border-blue-500/40">
+                ENGINE READY
+              </span>
+            </div>
+          </div>
+
+          {/* Waving Mascot with Help? message bubble where pointed */}
+          <div className="flex-shrink-0 pt-2">
+            <AiSmileyBot
+              size="lg"
+              speechBubbleText="Help?"
+              onSpeechBubbleClick={() => setIsHelpGuideOpen(true)}
+              onClick={() => setIsHelpGuideOpen(true)}
+            />
+          </div>
         </div>
 
-        {/* Input Fields */}
-        <div className="space-y-4">
+        {/* Input Fields Container */}
+        <div className="space-y-5">
           {/* Target URL / Text Input */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5 text-blue-400" />
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                <Link2 className="w-4 h-4 text-blue-500" />
                 <span>Claim Statement, News Article, or URL</span>
               </label>
-              <span className="text-[11px] text-slate-400">
-                Text &amp; Web Intelligence
-              </span>
             </div>
 
             <div className="relative">
@@ -563,50 +606,64 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                   setErrorMsg('');
                 }}
                 disabled={isScanning}
-                placeholder="Enter headline, statement, context, or paste a URL to verify..."
-                className="w-full bg-[#0b0f17] border border-[#243247] text-slate-100 placeholder-slate-500 rounded-lg px-3.5 py-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder=""
+                className="w-full bg-slate-50 dark:bg-[#090d16] border border-slate-300 dark:border-[#1e2a3f] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-['Inter',sans-serif] pr-20"
               />
 
-              {urlInput && (
-                <button
-                  type="button"
-                  onClick={() => setUrlInput('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-[#1e293b] border border-[#334155] flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                  <span>Clear</span>
-                </button>
-              )}
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                {!urlInput && (
+                  <button
+                    type="button"
+                    onClick={handlePasteFromClipboard}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-500/30 flex items-center gap-1 transition-all cursor-pointer font-medium shadow-2xs"
+                    title="Paste from clipboard"
+                  >
+                    <ClipboardPaste className="w-3.5 h-3.5" />
+                    <span>Paste</span>
+                  </button>
+                )}
+
+                {urlInput && (
+                  <button
+                    type="button"
+                    onClick={() => setUrlInput('')}
+                    className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1 rounded-lg bg-slate-200/70 hover:bg-slate-300 dark:bg-[#1a253a] dark:hover:bg-[#243350] border border-slate-300 dark:border-[#2d3d5c] flex items-center gap-1 transition-all cursor-pointer font-medium"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Clear</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Live URL Intelligence & Auto-Scraper Card */}
             {isLoadingPreview && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-[#0b0f17] border border-blue-500/30 text-xs text-blue-400 animate-pulse">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Auto-scraping real-time article intelligence &amp; domain credibility...</span>
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-300/80 dark:border-blue-500/30 text-xs text-blue-700 dark:text-blue-300 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                <span>Auto-scraping real-time article intelligence &amp; publisher credibility...</span>
               </div>
             )}
 
             {urlPreview && !isLoadingPreview && (
-              <div className="p-3.5 rounded-xl bg-[#0b0f17] border border-blue-500/40 space-y-2.5 animate-fadeIn shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-[#243247] gap-2">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#090d16] border border-blue-400/50 dark:border-blue-500/40 space-y-3 animate-fadeIn shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-slate-200 dark:border-[#1e2a3f] gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                    <span className="text-xs font-bold text-slate-200 font-mono">{urlPreview.domain}</span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{urlPreview.domain}</span>
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                         urlPreview.domainTrustScore >= 85
-                          ? 'bg-emerald-950/50 text-emerald-300 border-emerald-500/40'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/40'
                           : urlPreview.domainTrustScore >= 50
-                          ? 'bg-amber-950/50 text-amber-300 border-amber-500/40'
-                          : 'bg-red-950/50 text-red-300 border-red-500/40'
+                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-500/40'
+                          : 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-500/40'
                       }`}
                     >
                       {urlPreview.credibilityTier} ({urlPreview.domainTrustScore}/100 Trust)
                     </span>
                   </div>
 
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                     {urlPreview.httpsSecured ? '🔒 SSL Encrypted' : '⚠️ Unencrypted'}
                   </span>
                 </div>
@@ -616,31 +673,31 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                     <img
                       src={urlPreview.ogImage}
                       alt="Article Preview"
-                      className="w-16 h-16 rounded-lg object-cover border border-[#243247] flex-shrink-0"
+                      className="w-16 h-16 rounded-lg object-cover border border-slate-200 dark:border-[#1e2a3f] flex-shrink-0"
                     />
                   )}
-                  <div className="space-y-1 min-w-0">
-                    <h4 className="text-xs font-bold text-slate-100 truncate">{urlPreview.title}</h4>
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{urlPreview.title}</h4>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                       {urlPreview.description}
                     </p>
                     <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                      <span>{urlPreview.author}</span>
+                      <span>{urlPreview.author || 'Editorial Staff'}</span>
                       <span>&bull;</span>
-                      <span>{urlPreview.publishDate}</span>
+                      <span>{urlPreview.publishDate || 'Recent'}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#243247]/60 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400">
-                    Editorial Transparency: <strong className="text-slate-200">{urlPreview.editorialTransparency}</strong>
+                <div className="pt-2 border-t border-slate-200 dark:border-[#1e2a3f] flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Transparency: <strong className="text-slate-800 dark:text-slate-200">{urlPreview.editorialTransparency}</strong>
                   </span>
                   <button
                     type="button"
                     onClick={handleExecuteScan}
                     disabled={isScanning}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <span>Verify This Article Now</span>
                     <span>&rarr;</span>
@@ -650,37 +707,22 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
             )}
           </div>
 
-          {/* File Upload Area */}
-          <div className="space-y-1.5">
+          {/* Forensic Media Upload Box */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                <FileCode className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Forensic Media (AI Pictures &amp; Videos)</span>
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                <FileCode className="w-4 h-4 text-blue-500" />
+                <span>Forensic Media (Pictures &amp; Videos)</span>
               </label>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  id="btn-header-open-camera"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCameraOpen(true);
-                  }}
-                  className="px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:text-white bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-500/40 rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-                >
-                  <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Snap Photo / Camera</span>
-                </button>
-
-                <div className="hidden sm:flex items-center gap-1">
-                  {['JPG', 'PNG', 'WEBP', 'MP4'].map((ext) => (
-                    <span
-                      key={ext}
-                      className="text-[10px] text-slate-400 bg-[#0b0f17] px-1.5 py-0.5 rounded border border-[#243247]"
-                    >
-                      {ext}
-                    </span>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1">
+                {['JPG', 'PNG', 'WEBP', 'MP4'].map((ext) => (
+                  <span
+                    key={ext}
+                    className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#090d16] px-1.5 py-0.5 rounded border border-slate-200 dark:border-[#1e2a3f]"
+                  >
+                    {ext}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -699,12 +741,12 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
               onDragOver={handleDrag}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`w-full border-2 border-dashed rounded-lg cursor-pointer transition-colors p-4 relative ${
+              className={`w-full border-2 border-solid rounded-xl cursor-pointer transition-all p-5 relative ${
                 dragActive
-                  ? 'border-blue-500 bg-blue-950/20'
+                  ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30'
                   : selectedFile
-                  ? 'border-emerald-500/50 bg-[#0b0f17]'
-                  : 'border-[#243247] bg-[#0b0f17] hover:border-slate-600 hover:bg-[#161f30]'
+                  ? 'border-blue-500/60 bg-blue-50/20 dark:bg-blue-950/10'
+                  : 'border-slate-300 dark:border-[#22314a] bg-slate-50/60 dark:bg-[#090d16]/60 hover:border-blue-400 dark:hover:border-blue-500/60 hover:bg-blue-50/30 dark:hover:bg-[#121a2c]'
               }`}
             >
               {selectedFile ? (
@@ -712,11 +754,11 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       {isVideo ? (
-                        <div className="w-10 h-10 rounded-lg bg-red-950/40 border border-red-500/40 flex items-center justify-center flex-shrink-0 text-red-400">
-                          <Video className="w-5 h-5" />
+                        <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-500/40 flex items-center justify-center flex-shrink-0 text-red-600 dark:text-red-400">
+                          <Video className="w-6 h-6" />
                         </div>
                       ) : filePreviewUrl ? (
-                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#243247] flex-shrink-0 bg-[#0b0f17]">
+                        <div className="w-11 h-11 rounded-xl overflow-hidden border border-slate-300 dark:border-[#1e2a3f] flex-shrink-0 bg-slate-100 dark:bg-[#090d16]">
                           <img
                             src={filePreviewUrl}
                             alt="Preview"
@@ -724,21 +766,21 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                           />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                        <div className="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-950/50 border border-blue-300 dark:border-blue-500/40 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
                       )}
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-200 text-sm">
+                          <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">
                             {isVideo ? 'Video Payload Attached' : 'Image Payload Attached'}
                           </span>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950/50 text-blue-400 border border-blue-500/30">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
                             {isVideo ? 'Multi-Frame Video' : 'Visual Ingest'}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-400 block mt-0.5">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
                           {selectedFile.name} &bull; {(selectedFile.size / 1024).toFixed(1)} KB
                         </span>
                       </div>
@@ -753,7 +795,7 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                             e.stopPropagation();
                             onNavigateToEla(filePreviewUrl);
                           }}
-                          className="text-xs font-medium text-blue-400 hover:text-white bg-[#1e293b] hover:bg-[#283548] border border-blue-500/30 px-2.5 py-1 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-white bg-blue-50 dark:bg-[#1a253a] hover:bg-blue-600 dark:hover:bg-blue-600 border border-blue-200 dark:border-blue-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <Layers className="w-3.5 h-3.5" />
                           <span>Open in ELA</span>
@@ -768,26 +810,26 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                           setVideoFrames([]);
                           setIsVideo(false);
                         }}
-                        className="text-xs font-medium text-red-400 hover:text-white bg-red-950/30 border border-red-500/30 hover:bg-red-900/50 px-2.5 py-1 rounded transition-colors cursor-pointer"
+                        className="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-white bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 hover:bg-rose-600 dark:hover:bg-rose-900/60 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-xs"
                       >
                         Remove
                       </button>
                     </div>
                   </div>
 
-                  {/* Multi-Frame Video Reel Strip */}
+                  {/* Multi-Frame Video Keyframes Strip */}
                   {isVideo && (
-                    <div className="bg-[#111827] p-2.5 rounded-lg border border-[#243247] space-y-1.5">
-                      <div className="flex justify-between items-center text-xs text-slate-400">
-                        <span className="flex items-center gap-1 text-blue-400 font-medium">
+                    <div className="bg-slate-100 dark:bg-[#090d16] p-3 rounded-xl border border-slate-200 dark:border-[#1e2a3f] space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
                           <Film className="w-3.5 h-3.5" />
                           <span>Sequential Video Keyframes ({videoFrames.length} frames)</span>
                         </span>
-                        <span className="text-slate-400 text-[11px]">Temporal Artifact Analysis</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-[11px] font-mono">Temporal Drift Analysis</span>
                       </div>
 
                       {isExtractingFrames ? (
-                        <div className="flex items-center justify-center py-4 text-xs text-blue-400 gap-2">
+                        <div className="flex items-center justify-center py-5 text-xs text-blue-600 dark:text-blue-400 gap-2 font-medium">
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span>Extracting video keyframes across timeline...</span>
                         </div>
@@ -796,14 +838,14 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                           {videoFrames.map((frame, idx) => (
                             <div
                               key={idx}
-                              className="relative rounded overflow-hidden border border-[#243247] bg-[#0b0f17] aspect-video"
+                              className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-[#1e2a3f] bg-black aspect-video shadow-xs"
                             >
                               <img
                                 src={frame}
                                 alt={`Frame ${idx + 1}`}
                                 className="w-full h-full object-cover"
                               />
-                              <div className="absolute bottom-1 left-1 bg-black/80 px-1 py-0.5 rounded text-[9px] text-slate-300">
+                              <div className="absolute bottom-1 left-1 bg-black/80 px-1.5 py-0.5 rounded text-[9px] text-white font-mono">
                                 Frame {idx + 1}
                               </div>
                             </div>
@@ -814,35 +856,32 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#161f30] border border-[#243247] flex items-center justify-center text-slate-300">
-                      <Upload className="w-5 h-5 text-blue-400" />
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full text-center sm:text-left">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-[#141d2e] border border-blue-200 dark:border-[#22314a] flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs flex-shrink-0">
+                      <Upload className="w-6 h-6" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-200">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                         Upload Picture or Video for AI Detection
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        Drag &amp; drop MP4, WEBM, JPG, PNG or browse local files
                       </p>
                     </div>
                   </div>
 
-                  <div className="hidden sm:flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsCameraOpen(true);
                       }}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 px-3 py-1.5 rounded-md transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 hover:text-white bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-600 dark:hover:bg-blue-800/80 border border-blue-300 dark:border-blue-500/40 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-xs active:scale-98"
                     >
-                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                      <Camera className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       <span>Camera Snap</span>
                     </button>
 
-                    <div className="flex items-center gap-1 text-xs font-medium text-slate-300 bg-[#161f30] border border-[#243247] px-3 py-1.5 rounded-md">
+                    <div className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-[#141d2e] dark:hover:bg-[#1c283f] border border-slate-300 dark:border-[#22314a] px-3.5 py-2 rounded-xl shadow-xs transition-colors">
                       <span>Browse Files</span>
                       <span>&rarr;</span>
                     </div>
@@ -851,94 +890,93 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
               )}
             </div>
 
-            {/* Quick Formal AI Sample Loaders */}
-            <div className="pt-2 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-slate-400 font-medium">
-                Sample Presets:
+            {/* Quick 1-Click Interactive Sample Presets */}
+            <div className="pt-1 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider mr-1">
+                Try Sample:
               </span>
-              <button
-                type="button"
-                id="btn-sample-camera"
-                onClick={() => setIsCameraOpen(true)}
-                className="px-3 py-1.5 text-xs text-emerald-300 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer font-medium shadow-xs"
-              >
-                <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Snap Live Photo</span>
-              </button>
               <button
                 type="button"
                 id="btn-sample-ai-video"
                 onClick={() => handleLoadSample('ai_video')}
-                className="px-3 py-1.5 text-xs text-slate-200 hover:text-white bg-[#161f30] hover:bg-[#1e293b] border border-[#243247] hover:border-slate-500 rounded-lg transition-all flex items-center gap-2 cursor-pointer font-medium shadow-xs"
+                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 dark:bg-[#101726] dark:hover:bg-red-950/30 border border-slate-200 hover:border-red-300 dark:border-[#1e2a3f] dark:hover:border-red-500/40 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               >
-                <Video className="w-3.5 h-3.5 text-red-400" />
-                <span>Sample: AI Sora Video</span>
+                <Video className="w-3.5 h-3.5 text-red-500" />
+                <span>AI Sora Video</span>
               </button>
               <button
                 type="button"
                 id="btn-sample-ai-image"
                 onClick={() => handleLoadSample('ai_image')}
-                className="px-3 py-1.5 text-xs text-slate-200 hover:text-white bg-[#161f30] hover:bg-[#1e293b] border border-[#243247] hover:border-slate-500 rounded-lg transition-all flex items-center gap-2 cursor-pointer font-medium shadow-xs"
+                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-amber-50 dark:bg-[#101726] dark:hover:bg-amber-950/30 border border-slate-200 hover:border-amber-300 dark:border-[#1e2a3f] dark:hover:border-amber-500/40 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               >
-                <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
-                <span>Sample: AI Midjourney</span>
+                <ImageIcon className="w-3.5 h-3.5 text-amber-500" />
+                <span>AI Midjourney</span>
               </button>
               <button
                 type="button"
                 id="btn-sample-authentic"
                 onClick={() => handleLoadSample('authentic_photo')}
-                className="px-3 py-1.5 text-xs text-slate-200 hover:text-white bg-[#161f30] hover:bg-[#1e293b] border border-[#243247] hover:border-slate-500 rounded-lg transition-all flex items-center gap-2 cursor-pointer font-medium shadow-xs"
+                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-[#101726] dark:hover:bg-blue-950/30 border border-slate-200 hover:border-blue-300 dark:border-[#1e2a3f] dark:hover:border-blue-500/40 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Sample: Authentic Photo</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                <span>Authentic Photo</span>
+              </button>
+              <button
+                type="button"
+                id="btn-sample-viral-claim"
+                onClick={() => handleLoadSample('viral_claim')}
+                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-[#101726] dark:hover:bg-blue-950/30 border border-slate-200 hover:border-blue-300 dark:border-[#1e2a3f] dark:hover:border-blue-500/40 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              >
+                <Newspaper className="w-3.5 h-3.5 text-blue-500" />
+                <span>Viral Claim</span>
               </button>
             </div>
           </div>
 
-          {/* Error message */}
+          {/* Error Message Alert */}
           {errorMsg && (
-            <div className="flex items-center gap-2 text-xs text-red-300 bg-red-950/40 border border-red-500/30 p-3 rounded-lg">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMsg}</span>
+            <div className="flex items-center gap-2.5 text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-500/40 p-3.5 rounded-xl animate-fadeIn">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
+              <span className="font-medium">{errorMsg}</span>
             </div>
           )}
 
           {/* Live High-Security Multi-Stage Verification HUD */}
           {isScanning && (
-            <div className="bg-[#0b0f17] border border-blue-500/40 rounded-xl p-4 sm:p-5 shadow-lg relative overflow-hidden space-y-4 animate-fadeIn">
-              {/* Radar pulse effect */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse" />
+            <div className="bg-slate-50 dark:bg-[#090d16] border border-blue-400 dark:border-blue-500/50 rounded-2xl p-5 shadow-lg relative overflow-hidden space-y-4 animate-fadeIn">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 animate-pulse" />
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#243247] gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-950/60 border border-blue-500/40 flex items-center justify-center text-blue-400 flex-shrink-0">
-                    <ShieldCheck className="w-4 h-4 animate-pulse text-blue-400" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 dark:border-[#1e2a3f] gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 border border-blue-300 dark:border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
+                    <ShieldCheck className="w-5 h-5 animate-pulse text-blue-500" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-wide uppercase">
                         High-Security Multi-Stage Verification Active
                       </span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1">
                         <Lock className="w-2.5 h-2.5" />
                         <span>AES-256 Sandbox</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
                       Real-time payload sanitization, deepfake lattice deconstruction &amp; sensor PRNU audit
                     </p>
                   </div>
                 </div>
                 <div className="flex sm:flex-col items-center sm:items-end justify-between text-right">
-                  <span className="text-xs font-mono font-bold text-blue-400">{scanProgress}%</span>
-                  <span className="text-[10px] text-slate-400 font-mono">Stage {scanningStage + 1} of 4</span>
+                  <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">{scanProgress}%</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Stage {scanningStage + 1} of 4</span>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-[#161f30] h-2 rounded-full overflow-hidden border border-[#243247]">
+              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-300 dark:border-[#1e2a3f]">
                 <div
-                  className="bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-300 ease-out"
+                  className="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-400 h-full rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${scanProgress}%` }}
                 />
               </div>
@@ -951,51 +989,51 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
                   return (
                     <div
                       key={stg.step}
-                      className={`p-2.5 rounded-lg border transition-all ${
+                      className={`p-3 rounded-xl border transition-all ${
                         isDone
-                          ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                          ? 'bg-blue-50/80 border-blue-300 text-blue-900 dark:bg-blue-950/20 dark:border-blue-500/30 dark:text-blue-300'
                           : isActive
-                          ? 'bg-blue-950/30 border-blue-500/50 text-blue-200 ring-1 ring-blue-500/30 shadow-sm'
-                          : 'bg-[#111827]/60 border-[#243247] text-slate-500'
+                          ? 'bg-blue-50/90 border-blue-400 text-blue-900 dark:bg-blue-950/30 dark:border-blue-500/50 dark:text-blue-200 ring-1 ring-blue-500/30 shadow-xs'
+                          : 'bg-slate-100/60 dark:bg-[#0c121e]/60 border-slate-200 dark:border-[#1e2a3f] text-slate-400 dark:text-slate-500'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-mono font-semibold px-1 py-0.2 rounded bg-black/40">
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/10 dark:bg-black/40">
                           {stg.step}
                         </span>
                         {isDone ? (
-                          <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
-                            <Check className="w-3 h-3" /> Done
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1 font-bold">
+                            <Check className="w-3.5 h-3.5" /> Done
                           </span>
                         ) : isActive ? (
-                          <span className="text-[10px] text-blue-400 flex items-center gap-1 font-medium animate-pulse">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Active
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1 font-bold animate-pulse">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Active
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-500">Queued</span>
+                          <span className="text-[10px] text-slate-400 font-mono">Queued</span>
                         )}
                       </div>
-                      <h4 className="text-xs font-semibold text-slate-200 truncate">{stg.title}</h4>
-                      <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5 leading-snug">{stg.detail}</p>
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{stg.title}</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-snug">{stg.detail}</p>
                     </div>
                   );
                 })}
               </div>
 
               {/* Security Telemetry Footer Ticker */}
-              <div className="pt-1 flex flex-wrap items-center justify-between text-[11px] text-slate-400 gap-2 border-t border-[#243247]/60">
+              <div className="pt-2 flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 gap-2 border-t border-slate-200 dark:border-[#1e2a3f]">
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <Shield className="w-3 h-3 text-emerald-400" />
-                    <span>Cryptographic Tamper Shield: <strong>Armored</strong></span>
+                  <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                    <Shield className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Tamper Shield: <strong className="text-blue-600 dark:text-blue-400">Armored</strong></span>
                   </span>
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <Activity className="w-3 h-3 text-blue-400" />
-                    <span>Neural Cores: <strong>Online</strong></span>
+                  <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                    <Cpu className="w-3.5 h-3.5 text-blue-500" />
+                    <span>Neural Cores: <strong className="text-blue-600 dark:text-blue-400">Online</strong></span>
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-blue-400 font-mono">
-                  <Terminal className="w-3 h-3" />
+                <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-mono">
+                  <Terminal className="w-3.5 h-3.5" />
                   <span>Synthesizing Plain-English Directive...</span>
                 </div>
               </div>
@@ -1003,39 +1041,21 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
           )}
 
           {/* Action Button Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between pt-3 gap-3 border-t border-[#243247]">
-            <button
-              type="button"
-              onClick={onOpenApiKeyModal}
-              className={`flex items-center gap-2 text-xs transition-colors cursor-pointer ${
-                geminiConfigured
-                  ? 'text-emerald-400 hover:text-emerald-300'
-                  : 'text-amber-400 hover:text-amber-300'
-              }`}
-              title={
-                geminiConfigured
-                  ? 'Neural Vision Core: Active & Connected'
-                  : 'Local Heuristic Engine Active (Click to connect free Groq or Google Gemini API Key for Live Vision)'
-              }
+          <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4 border-t border-slate-200/90 dark:border-[#1e2a3f]">
+            <div
+              className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 select-none font-semibold"
+              title="Groq Llama / Qwen Vision Core: Connected and active"
             >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  geminiConfigured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-                }`}
-              ></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
               <Cpu className="w-4 h-4" />
-              <span className="font-medium">
-                {geminiConfigured
-                  ? 'AI Vision Core: Connected'
-                  : 'Local Heuristic Engine (Click to Connect Groq / Gemini Key)'}
-              </span>
-            </button>
+              <span>Groq Vision Core: Active &amp; Ready</span>
+            </div>
 
             <button
               id="scan-vector-button"
               onClick={handleExecuteScan}
               disabled={isScanning}
-              className="w-full sm:w-auto px-7 py-2.5 rounded-lg btn-primary disabled:opacity-50 text-white font-medium text-sm flex items-center justify-center gap-2.5 cursor-pointer shadow-sm transition-all"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm tracking-wide flex items-center justify-center gap-2.5 cursor-pointer shadow-lg hover:shadow-blue-500/25 active:scale-98 transition-all disabled:opacity-50"
             >
               {isScanning ? (
                 <>
@@ -1045,7 +1065,7 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
               ) : (
                 <>
                   <Scan className="w-4 h-4 text-white" />
-                  <span>Detect AI &amp; Verify</span>
+                  <span>Detect AI &amp; Verify Now</span>
                 </>
               )}
             </button>
@@ -1062,6 +1082,16 @@ export const DataInputVector: React.FC<DataInputVectorProps> = ({
           setFilePreviewUrl(dataUrl);
           setIsVideo(false);
           setVideoFrames([]);
+          setErrorMsg('');
+        }}
+      />
+
+      {/* Interactive App Help Guide Modal */}
+      <AppHelpGuideModal
+        isOpen={isHelpGuideOpen}
+        onClose={() => setIsHelpGuideOpen(false)}
+        onSelectSampleClaim={(claim) => {
+          setUrlInput(claim);
           setErrorMsg('');
         }}
       />

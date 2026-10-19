@@ -1,7 +1,6 @@
 // Aletheia AI Progressive Web App Service Worker
-const CACHE_NAME = 'aletheia-cache-v1';
+const CACHE_NAME = 'aletheia-cache-v3';
 const ASSETS_TO_CACHE = [
-  '/',
   '/manifest.json',
   '/icon-192.svg',
   '/icon-512.svg',
@@ -20,11 +19,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
+        keys.map((key) => caches.delete(key))
       );
     })
   );
@@ -32,29 +27,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only cache GET requests that are not API calls
+  // Always go to network first
   if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+    fetch(event.request)
+      .then((networkResponse) => {
         return networkResponse;
-      }).catch(() => {
-        // Offline fallback if needed
-        return caches.match('/');
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

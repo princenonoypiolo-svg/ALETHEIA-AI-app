@@ -160,3 +160,15 @@ export interface ChatMessage {
   evidenceLinks?: string[];
 }
 
+export interface TelemetryStats {
+  threatCount: number;
+  deepfakeCount: number;
+  newsCount: number;
+  syntheticMediaCount: number;
+  nodeCount: number;
+  latencyVal: number;
+  inferenceVal?: number;
+  latticeVal?: number;
+  packetLoss?: number;
+}
+

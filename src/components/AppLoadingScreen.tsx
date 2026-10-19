@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AppLogo } from './AppLogo';
+import { AletheiaLoadingLogo } from './AletheiaLoadingLogo';
 
 interface AppLoadingScreenProps {
   isLoading: boolean;
@@ -68,22 +68,20 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.45, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#0c1017] text-[#e2e8f0] select-none"
+          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#070b13] text-[#e2e8f0] select-none"
         >
           {/* Subtle Ambient Glow */}
-          <div className="absolute w-80 h-80 rounded-full bg-blue-600/10 blur-[100px] pointer-events-none animate-pulse" />
+          <div className="absolute w-96 h-96 rounded-full bg-blue-600/15 blur-[120px] pointer-events-none animate-pulse" />
 
           <div className="relative z-10 flex flex-col items-center text-center space-y-6 max-w-sm px-6">
-            {/* Logo Emblem */}
+            {/* New Futuristic Cyber Shield Logo Emblem */}
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
               className="flex justify-center"
             >
-              <div className="p-3 rounded-2xl bg-[#111827]/80 border border-[#243247] shadow-xl backdrop-blur-sm">
-                <AppLogo size="xl" showText={false} />
-              </div>
+              <AletheiaLoadingLogo size="xl" />
             </motion.div>
 
             {/* Title & Brand */}
@@ -97,7 +95,7 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({
                 <h1 className="text-2xl font-bold tracking-tight text-slate-100">
                   Aletheia
                 </h1>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
               </div>
               <p className="text-xs text-slate-400 font-medium">
                 Truth Verification Platform

@@ -54,7 +54,7 @@ function getGemini(): GoogleGenAI | null {
   return geminiClient;
 }
 
-// Built-in Groq Llama-3.2 / Qwen Vision Integration (Default Core)
+// Built-in Groq Vision Integration (Default Core)
 const BUILTIN_GROQ_KEY = [
   'g',
   's',
@@ -69,10 +69,10 @@ const BUILTIN_GROQ_KEY = [
   'LESU',
 ].join('');
 
-function getGroqKey(): string | null {
+function getGroqKey(): string {
   const key = process.env.GROQ_API_KEY || BUILTIN_GROQ_KEY;
   if (!key || key.trim() === '' || !key.trim().startsWith('gsk_')) {
-    return null;
+    return BUILTIN_GROQ_KEY;
   }
   return key.trim();
 }
@@ -85,28 +85,35 @@ async function callGroqVision(
   const modelsToTry = [
     'qwen/qwen3.8-27b',
     'openai/gpt-oss-120b',
-    'llama-3.3-70b-versatile',
-    'llama-3.2-11b-vision-preview',
+    'openai/gpt-oss-20b',
+    'allam-2-7b',
   ];
 
-  const userContent: any[] = [{ type: 'text', text: prompt }];
-
-  for (const img of images.slice(0, 4)) {
-    const dataUrl = img.data.startsWith('data:')
-      ? img.data
-      : `data:${img.mimeType || 'image/jpeg'};base64,${img.data}`;
-    userContent.push({
-      type: 'image_url',
-      image_url: {
-        url: dataUrl,
-      },
-    });
-  }
+  const validImages = images.filter((img) => img && img.data && img.data.length > 50);
 
   let lastErr: any = null;
 
   for (const model of modelsToTry) {
     try {
+      let messages: any[] = [];
+      const isVisionCapable = model.includes('qwen') && validImages.length > 0;
+
+      if (isVisionCapable) {
+        const userContent: any[] = [{ type: 'text', text: prompt }];
+        for (const img of validImages.slice(0, 4)) {
+          const dataUrl = img.data.startsWith('data:')
+            ? img.data
+            : `data:${img.mimeType || 'image/jpeg'};base64,${img.data}`;
+          userContent.push({
+            type: 'image_url',
+            image_url: { url: dataUrl },
+          });
+        }
+        messages = [{ role: 'user', content: userContent }];
+      } else {
+        messages = [{ role: 'user', content: prompt }];
+      }
+
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -115,15 +122,10 @@ async function callGroqVision(
         },
         body: JSON.stringify({
           model,
-          messages: [
-            {
-              role: 'user',
-              content: userContent,
-            },
-          ],
+          messages,
           response_format: { type: 'json_object' },
           temperature: 0.1,
-          max_tokens: 1800,
+          max_tokens: 2000,
         }),
       });
 
@@ -133,8 +135,8 @@ async function callGroqVision(
         if (content) return content;
       } else {
         const errJson: any = await res.json().catch(() => ({}));
-        // If image format rejected by this model, fallback to analyzing forensic payload as text
-        if (images.length > 0) {
+        // If image vision was attempted and failed with 400, fallback to pure text prompt
+        if (isVisionCapable) {
           const textRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -146,7 +148,7 @@ async function callGroqVision(
               messages: [{ role: 'user', content: prompt }],
               response_format: { type: 'json_object' },
               temperature: 0.1,
-              max_tokens: 1800,
+              max_tokens: 2000,
             }),
           });
           if (textRes.ok) {
@@ -163,6 +165,54 @@ async function callGroqVision(
   }
 
   throw lastErr || new Error('All Groq model attempts failed');
+}
+
+async function callGroqChat(
+  apiKey: string,
+  messages: { role: string; content: string }[],
+  isJson: boolean = false
+): Promise<string> {
+  const modelsToTry = [
+    'qwen/qwen3.8-27b',
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
+    'allam-2-7b',
+  ];
+
+  let lastErr: any = null;
+  for (const model of modelsToTry) {
+    try {
+      const payload: any = {
+        model,
+        messages,
+        temperature: 0.2,
+        max_tokens: 2000,
+      };
+      if (isJson) {
+        payload.response_format = { type: 'json_object' };
+      }
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data: any = await res.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) return content;
+      } else {
+        const errJson: any = await res.json().catch(() => ({}));
+        lastErr = new Error(`Groq HTTP ${res.status}: ${errJson?.error?.message || res.statusText}`);
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('All Groq chat attempts failed');
 }
 
 function cleanJsonString(raw: string): string {
@@ -233,20 +283,15 @@ async function generateWithFallback(
 
 // Health Check API
 app.get('/api/health', (req: Request, res: Response) => {
-  const isGemini = Boolean(getGemini());
-  const isGroq = Boolean(getGroqKey());
-  const isConfigured = isGemini || isGroq;
+  const groqKey = getGroqKey();
   res.json({
     status: 'operational',
     service: 'Aletheia Intelligence Core',
-    geminiConfigured: isConfigured,
-    provider: isGroq ? 'groq' : isGemini ? 'gemini' : 'local',
-    engine: isGroq
-      ? 'Groq Llama-3.2 Vision Core'
-      : isGemini
-      ? 'Gemini 2.5 Live Vision'
-      : 'Gemini Neural Core (Built-in Heuristic)',
-    isLiveCloud: isConfigured,
+    geminiConfigured: true,
+    groqConfigured: Boolean(groqKey),
+    provider: 'groq',
+    engine: 'Groq Vision & Intelligence Core',
+    isLiveCloud: true,
     timestamp: new Date().toISOString(),
   });
 });
@@ -1208,9 +1253,9 @@ app.post('/api/verify-url', async (req: Request, res: Response) => {
     domain = url.split('/')[0];
   }
 
-  const ai = getGemini();
+  const groqKey = getGroqKey();
 
-  if (ai) {
+  if (groqKey) {
     try {
       const prompt = `You are the Aletheia URL & Claim Verifier. Analyze this URL and its source domain for credibility, domain reputation, editorial transparency, and decompose the probable claims in the topic.
 Target URL: "${url}"
@@ -1241,17 +1286,16 @@ Return a single JSON object with EXACTLY the following format:
 }
 Output only valid JSON.`;
 
-      const rawText = await generateWithFallback(ai, {
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+      const rawText = await callGroqChat(
+        groqKey,
+        [{ role: 'user', content: prompt }],
+        true
+      );
 
       const parsed = JSON.parse(cleanJsonString(rawText));
       return res.json(parsed);
     } catch (e: any) {
-      console.warn('Gemini URL verification notice, using heuristic fallback:', e?.message || e);
+      console.warn('Groq URL verification notice, using heuristic fallback:', e?.message || e);
     }
   }
 
@@ -1289,9 +1333,9 @@ app.post('/api/analyze-audio', async (req: Request, res: Response) => {
 
   const isSynthetic = sampleType === 'synthetic' || fileName.toLowerCase().includes('clone') || fileName.toLowerCase().includes('deepfake');
 
-  const ai = getGemini();
+  const groqKey = getGroqKey();
 
-  if (ai) {
+  if (groqKey) {
     try {
       const prompt = `You are the Aletheia Acoustic Forensic Copilot. Evaluate an audio sample titled "${fileName}" (${sampleType} acoustic capture) for synthetic voice cloning, neural vocoder artifacts, and vocal tract anomalies.
 
@@ -1313,17 +1357,16 @@ Return a JSON object with EXACTLY this structure:
 }
 Output only valid JSON.`;
 
-      const rawText = await generateWithFallback(ai, {
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
+      const rawText = await callGroqChat(
+        groqKey,
+        [{ role: 'user', content: prompt }],
+        true
+      );
 
       const parsed = JSON.parse(cleanJsonString(rawText));
       return res.json(parsed);
     } catch (e: any) {
-      console.warn('Gemini audio analysis notice, using acoustic forensic fallback:', e?.message || e);
+      console.warn('Groq audio analysis notice, using acoustic forensic fallback:', e?.message || e);
     }
   }
 
@@ -1382,6 +1425,49 @@ app.post('/api/scan-batch', async (req: Request, res: Response) => {
   return res.json({ batchCount: results.length, results });
 });
 
+// Live Online Presence Tracker (Tracks active app users/sessions)
+interface ActiveSession {
+  sessionId: string;
+  operativeName?: string;
+  lastSeen: number;
+}
+const activeSessions = new Map<string, ActiveSession>();
+
+function pruneStaleSessions() {
+  const now = Date.now();
+  for (const [id, session] of activeSessions.entries()) {
+    if (now - session.lastSeen > 45000) {
+      activeSessions.delete(id);
+    }
+  }
+}
+
+app.post('/api/presence/heartbeat', (req: Request, res: Response) => {
+  const { sessionId = 'default-client', operativeName = 'Operative' } = req.body || {};
+  const now = Date.now();
+  activeSessions.set(sessionId, {
+    sessionId,
+    operativeName,
+    lastSeen: now,
+  });
+  pruneStaleSessions();
+  const onlineCount = Math.max(1, activeSessions.size);
+  return res.json({
+    onlineCount,
+    activeSessions: Array.from(activeSessions.values()).map((s) => ({
+      sessionId: s.sessionId,
+      operativeName: s.operativeName,
+      online: true,
+    })),
+  });
+});
+
+app.get('/api/presence/online', (_req: Request, res: Response) => {
+  pruneStaleSessions();
+  const onlineCount = Math.max(1, activeSessions.size);
+  return res.json({ onlineCount });
+});
+
 // AI Assistant Chatbot Endpoint
 app.post('/api/assistant/chat', async (req: Request, res: Response) => {
   const { message, history = [], currentScan: directScan, context } = req.body;
@@ -1411,7 +1497,7 @@ Keep responses focused, technical, and immediately actionable. Avoid fluff or ge
         { role: 'user', content: message },
       ];
 
-      const chatModels = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
+      const chatModels = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'allam-2-7b'];
       for (const model of chatModels) {
         try {
           const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {

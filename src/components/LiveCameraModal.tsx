@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, X, RefreshCw, CheckCircle2, AlertCircle, Shield, Focus, FlipHorizontal } from 'lucide-react';
+import { Camera, CameraOff, X, RefreshCw, CheckCircle2, AlertCircle, Shield, Focus, FlipHorizontal, Upload } from 'lucide-react';
 
 interface LiveCameraModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   onCapture,
 }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('user');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isShutterActive, setIsShutterActive] = useState<boolean>(false);
@@ -22,7 +22,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
 
-  // Start Camera Stream
+  // Start Camera Stream with progressive fallback
   const startCamera = async (mode: 'environment' | 'user') => {
     setErrorMsg('');
     if (stream) {
@@ -31,17 +31,26 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera access not supported on this device/browser context.');
+        throw new Error('Camera access not supported on this browser context.');
       }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: mode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
+      let mediaStream: MediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: mode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch (constraintErr) {
+        // Fallback to simple video constraint (essential for desktop webcams without facingMode tags)
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
       setStream(mediaStream);
       if (videoRef.current) {
@@ -49,11 +58,19 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
       }
     } catch (err: any) {
       console.warn('Webcam stream error:', err);
-      setErrorMsg(
-        err.name === 'NotAllowedError'
-          ? 'Camera permission denied. Please allow camera access in your browser or use the native camera file picker below.'
-          : 'Unable to initialize webcam feed. You can take a photo directly using the native device camera button below.'
-      );
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setErrorMsg(
+          'Camera permission is blocked or denied. You can allow camera access in your browser settings (click the lock/camera icon in your address bar), or choose a photo directly from your files.'
+        );
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setErrorMsg(
+          'No optical camera or webcam was detected on this system. You can choose any picture directly from your files.'
+        );
+      } else {
+        setErrorMsg(
+          'Unable to initialize webcam feed. You can upload an image directly from your device.'
+        );
+      }
     }
   };
 
@@ -162,9 +179,47 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
           </button>
         </div>
 
-        {/* Viewfinder Content Area */}
-        <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-          {capturedPhoto ? (
+        {/* Viewfinder Content Area or Fallback Card */}
+        <div className="relative min-h-[300px] sm:min-h-[360px] bg-black flex items-center justify-center overflow-hidden">
+          {errorMsg ? (
+            <div className="p-8 text-center flex flex-col items-center justify-center space-y-4 max-w-md mx-auto animate-fadeIn">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <CameraOff className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-slate-100">
+                  Camera Access Not Available
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {errorMsg}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2 w-full justify-center">
+                <button
+                  type="button"
+                  onClick={() => mobileInputRef.current?.click()}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-95"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Choose Photo from Device</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => startCamera(facingMode)}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Try Again</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-500 font-mono">
+                Tip: Click the lock or camera icon in your browser address bar to allow camera permissions.
+              </p>
+            </div>
+          ) : capturedPhoto ? (
             <img
               src={capturedPhoto}
               alt="Captured Frame"
@@ -209,24 +264,6 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
           {/* Hidden Canvas for Frame Extraction */}
           <canvas ref={canvasRef} className="hidden" />
-
-          {/* Error / Fallback Banner */}
-          {errorMsg && (
-            <div className="absolute inset-x-4 top-4 bg-red-950/90 border border-red-500/50 p-3 rounded-xl text-xs text-red-200 flex flex-col gap-2 shadow-lg backdrop-blur-xs">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <span>{errorMsg}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => mobileInputRef.current?.click()}
-                className="self-start px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-medium rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                <span>Launch Native Device Camera</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Hidden native mobile camera input */}
@@ -241,7 +278,17 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
 
         {/* Controls Footer */}
         <div className="p-4 bg-[#0b0f17] border-t border-[#243247] flex items-center justify-between gap-3">
-          {capturedPhoto ? (
+          {errorMsg ? (
+            <div className="w-full flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          ) : capturedPhoto ? (
             <>
               <button
                 type="button"

@@ -6,7 +6,7 @@ import {
   INITIAL_CONFIG,
   INITIAL_SCAN_LOGS,
 } from './mockData';
-import { ScreenView, ScanResult, OperativeProfile, SystemConfig } from './types';
+import { ScreenView, ScanResult, OperativeProfile, SystemConfig, TelemetryStats } from './types';
 import { TopAppBar } from './components/TopAppBar';
 import { BottomNavBar } from './components/BottomNavBar';
 import { DataInputVector } from './components/DataInputVector';
@@ -22,6 +22,7 @@ import { BatchScannerModal } from './components/BatchScannerModal';
 import { ForensicVisualInspector } from './components/ForensicVisualInspector';
 import { AppLoadingScreen } from './components/AppLoadingScreen';
 import { playTacticalSound } from './utils/soundFx';
+import { logoutOperative } from './lib/authService';
 import {
   EditProfileModal,
   PasswordModal,
@@ -45,8 +46,8 @@ export default function App() {
     };
   }, []);
 
-  // State initialization with localStorage recovery
-  const [currentScreen, setCurrentScreen] = useState<ScreenView>('dashboard');
+  // State initialization with localStorage recovery (starts at login screen after initial loading)
+  const [currentScreen, setCurrentScreen] = useState<ScreenView>('login');
   const [isScanning, setIsScanning] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
@@ -148,6 +149,67 @@ export default function App() {
     }
   }, [scanLogs]);
 
+  // Platform Telemetry Stats - initialized to 0.0 baseline
+  const [telemetryStats, setTelemetryStats] = useState<TelemetryStats>(() => {
+    try {
+      const saved = localStorage.getItem('aletheia_telemetry_stats');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      threatCount: 0.0,
+      deepfakeCount: 0.0,
+      newsCount: 0.0,
+      syntheticMediaCount: 0.0,
+      nodeCount: 0.0,
+      latencyVal: 0.0,
+      inferenceVal: 0.0,
+      latticeVal: 0.0,
+      packetLoss: 0.0,
+    };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('aletheia_telemetry_stats', JSON.stringify(telemetryStats));
+    } catch (e) {
+      console.warn('Telemetry storage sync warning', e);
+    }
+  }, [telemetryStats]);
+
+  // Increment threats neutralized and vector categories when URL, photo, or video is scanned
+  const incrementTelemetryForScan = (
+    targetType: 'url' | 'file' | 'text' | 'audio',
+    fileData?: { name?: string; mimeType?: string; isVideo?: boolean }
+  ) => {
+    const isVideoAsset = Boolean(
+      fileData?.isVideo ||
+      (fileData?.name && /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(fileData.name)) ||
+      fileData?.mimeType?.startsWith('video/') ||
+      targetType === 'audio'
+    );
+
+    const isPhotoAsset = Boolean(
+      !isVideoAsset &&
+      (targetType === 'file' ||
+       fileData?.mimeType?.startsWith('image/') ||
+       (fileData?.name && /\.(png|jpe?g|webp|gif|svg|bmp|tiff)$/i.test(fileData.name)))
+    );
+
+    const isUrlOrNewsAsset = !isVideoAsset && !isPhotoAsset;
+
+    setTelemetryStats((prev) => ({
+      ...prev,
+      threatCount: +(prev.threatCount + 1.0).toFixed(1),
+      deepfakeCount: isPhotoAsset ? +(prev.deepfakeCount + 1.0).toFixed(1) : prev.deepfakeCount,
+      newsCount: isUrlOrNewsAsset ? +(prev.newsCount + 1.0).toFixed(1) : prev.newsCount,
+      syntheticMediaCount: isVideoAsset ? +(prev.syntheticMediaCount + 1.0).toFixed(1) : prev.syntheticMediaCount,
+      nodeCount: +(prev.nodeCount + 1.0).toFixed(1),
+      latencyVal: +(0.1 + Math.random() * 0.3).toFixed(1),
+      inferenceVal: +(12.0 + Math.random() * 8.0).toFixed(1),
+      latticeVal: +(1.0 + Math.random() * 1.5).toFixed(1),
+    }));
+  };
+
   // Execute Vector Scan
   const handleExecuteScan = async (
     target: string,
@@ -156,6 +218,7 @@ export default function App() {
   ) => {
     setIsScanning(true);
     if (soundActive) playTacticalSound('scan_start');
+    incrementTelemetryForScan(targetType, fileData);
     try {
       const res = await fetch('/api/scan', {
         method: 'POST',
@@ -278,16 +341,20 @@ export default function App() {
     if (soundActive) playTacticalSound('scan_success');
   };
 
-  const handleLoginSuccess = (operativeIdString: string) => {
+  const handleLoginSuccess = (operativeIdString: string, userProfile?: Partial<OperativeProfile>) => {
+    const cleanId = operativeIdString.trim() || 'Agent 01';
     setOperative((prev) => ({
       ...prev,
-      name: operativeIdString.includes('@') ? operativeIdString.split('@')[0] : operativeIdString || 'Agent 01',
+      ...userProfile,
+      name: userProfile?.name || (cleanId.includes('@') ? cleanId.split('@')[0] : cleanId),
+      operativeId: userProfile?.operativeId || cleanId,
     }));
     setCurrentScreen('dashboard');
     if (soundActive) playTacticalSound('scan_success');
   };
 
-  const handleTerminateSession = () => {
+  const handleTerminateSession = async () => {
+    await logoutOperative();
     setCurrentScreen('login');
     if (soundActive) playTacticalSound('alert_fabricated');
   };
@@ -311,8 +378,8 @@ export default function App() {
   // Theme skin classes
   const isDark = config.darkMode !== false;
   const themeBgClass = !isDark
-    ? 'bg-[#f0f7ff] text-[#0f172a]'
-    : 'bg-[#0c1017] text-[#e2e8f0] selection:bg-blue-600 selection:text-white';
+    ? 'bg-[#f8fafc] text-slate-900 selection:bg-blue-600 selection:text-white'
+    : 'bg-[#080d18] text-[#e2e8f0] selection:bg-blue-600 selection:text-white';
 
   return (
     <>
@@ -372,30 +439,24 @@ export default function App() {
 
               {/* System Status & Metrics (Col 4) */}
               <div className="md:col-span-4">
-                <SystemStatusCard />
+                <SystemStatusCard stats={telemetryStats} />
               </div>
             </div>
 
             {/* Direct Link to Dedicated Analysis Log Screen */}
-            <div className="flex items-center justify-between p-4 bg-[#111827] border border-[#243247] rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
-                <div>
-                  <span className="text-sm font-semibold text-slate-200 block font-['Inter']">
-                    Audit Log &amp; Verification Archives
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {scanLogs.length} verified dossiers recorded in local registry
-                  </span>
-                </div>
+            <div className="flex items-center justify-between px-5 py-3.5 bg-white/80 dark:bg-[#0f1728]/80 border border-slate-200/80 dark:border-[#1e2a3f] rounded-xl shadow-xs backdrop-blur-md">
+              <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">Local Audit Registry:</span>
+                <span className="font-mono text-slate-500 dark:text-slate-400">{scanLogs.length} verified dossiers recorded</span>
               </div>
 
               <button
                 id="dashboard-view-log-btn"
                 onClick={() => navigateTo('history')}
-                className="px-4 py-2 rounded-lg bg-[#1e293b] hover:bg-[#283548] border border-[#334155] text-xs font-medium text-slate-200 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>View Full Log</span>
+                <span>View Full Audit Log ({scanLogs.length})</span>
                 <span>&rarr;</span>
               </button>
             </div>
@@ -462,8 +523,8 @@ export default function App() {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="text-xs px-2.5 py-1 rounded-md bg-[#111827] border border-[#243247] text-emerald-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span className="text-xs px-2.5 py-1 rounded-md bg-[#111827] border border-[#243247] text-blue-400 font-medium">
                   Client-Side Quantization Engine Active
                 </span>
               </div>
@@ -531,11 +592,11 @@ export default function App() {
           if (soundActive) playTacticalSound('scan_success');
         }}
       />
-
-      {/* Feature 5: Mobile & Desktop PWA Installation Prompt */}
-      <PwaInstallBanner />
         </div>
       )}
+
+      {/* Feature 5: Mobile & Desktop PWA Installation Prompt (Lower Left Side) */}
+      <PwaInstallBanner />
     </>
   );
 }

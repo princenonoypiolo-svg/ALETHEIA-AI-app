@@ -756,7 +756,7 @@ export const ForensicVisualInspector: React.FC<ForensicVisualInspectorProps> = (
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-white" />
-            <span>Dispatch to Gemini Multimodal Scan &rarr;</span>
+            <span>Dispatch to Groq Vision Deep Scan &rarr;</span>
           </button>
         )}
       </div>

@@ -33,7 +33,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         onClick={() => onNavigate('forensic_inspector')}
         className={`flex flex-col items-center justify-center px-3 py-1 transition-colors cursor-pointer ${
           currentScreen === 'forensic_inspector'
-            ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+            ? 'text-blue-600 dark:text-blue-400 font-semibold'
             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
         }`}
       >

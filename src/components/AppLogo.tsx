@@ -45,7 +45,7 @@ export const AppLogo: React.FC<AppLogoProps> = ({
         <div className="text-left select-none">
           <div className={`font-semibold tracking-tight text-slate-100 group-hover:text-white transition-colors leading-tight ${dim.text} flex items-center gap-2`}>
             <span>Aletheia</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
           </div>
           <div className={`text-slate-400 font-medium ${dim.sub}`}>
             Truth Verification Platform
