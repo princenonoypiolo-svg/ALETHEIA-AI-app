@@ -49,11 +49,21 @@ export interface ForensicMetrics {
   aiDetection?: AiDetectionDetails;
 }
 
+export interface SteganographyDetails {
+  entropy: number;
+  trailingPayloadBytes: number;
+  lsbStatus: string;
+  details: string;
+  magicHeadersFound?: string[];
+}
+
 export interface SecurityAudit {
   securityStatus: 'CLEARED' | 'SUSPICIOUS' | 'CRITICAL_THREAT';
   tamperProofHash: string;
   steganographyDetected: boolean;
+  steganographyDetails?: SteganographyDetails;
   adversarialPerturbation: boolean;
+  adversarialPerturbationPercent?: number;
   quarantineRecommended: boolean;
   securityRecommendation: string;
 }

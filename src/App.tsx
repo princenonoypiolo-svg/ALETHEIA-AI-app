@@ -22,7 +22,7 @@ import { BatchScannerModal } from './components/BatchScannerModal';
 import { ForensicVisualInspector } from './components/ForensicVisualInspector';
 import { AppLoadingScreen } from './components/AppLoadingScreen';
 import { playTacticalSound } from './utils/soundFx';
-import { logoutOperative } from './lib/authService';
+import { logoutOperative, subscribeToAuthState } from './lib/authService';
 import {
   EditProfileModal,
   PasswordModal,
@@ -46,8 +46,19 @@ export default function App() {
     };
   }, []);
 
-  // State initialization with localStorage recovery (starts at login screen after initial loading)
-  const [currentScreen, setCurrentScreen] = useState<ScreenView>('login');
+  // State initialization with localStorage recovery (persists active session and screen across reloads)
+  const [currentScreen, setCurrentScreen] = useState<ScreenView>(() => {
+    try {
+      const isAuth = localStorage.getItem('aletheia_auth_session') === 'authenticated';
+      const savedScreen = localStorage.getItem('aletheia_current_screen') as ScreenView | null;
+      if (isAuth) {
+        return savedScreen && savedScreen !== 'login' ? savedScreen : 'dashboard';
+      }
+      return 'login';
+    } catch {
+      return 'login';
+    }
+  });
   const [isScanning, setIsScanning] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
@@ -102,6 +113,37 @@ export default function App() {
   useEffect(() => {
     checkCoreHealth();
   }, []);
+
+  // Listen to Firebase Auth state for seamless session sync & persistence across reloads / devices
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthState((firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          localStorage.setItem('aletheia_auth_session', 'authenticated');
+        } catch {}
+        const cleanName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Operative');
+        setOperative((prev) => ({
+          ...prev,
+          name: cleanName,
+          operativeId: firebaseUser.displayName || prev.operativeId,
+        }));
+        setCurrentScreen((prevScreen) => (prevScreen === 'login' ? 'dashboard' : prevScreen));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync current screen to localStorage so refreshing keeps the user on the active screen
+  useEffect(() => {
+    try {
+      if (currentScreen !== 'login') {
+        localStorage.setItem('aletheia_auth_session', 'authenticated');
+        localStorage.setItem('aletheia_current_screen', currentScreen);
+      }
+    } catch (e) {
+      console.warn('Screen storage sync error', e);
+    }
+  }, [currentScreen]);
 
   const soundActive = config.soundEffects !== false;
 
@@ -349,12 +391,20 @@ export default function App() {
       name: userProfile?.name || (cleanId.includes('@') ? cleanId.split('@')[0] : cleanId),
       operativeId: userProfile?.operativeId || cleanId,
     }));
+    try {
+      localStorage.setItem('aletheia_auth_session', 'authenticated');
+      localStorage.setItem('aletheia_current_screen', 'dashboard');
+    } catch {}
     setCurrentScreen('dashboard');
     if (soundActive) playTacticalSound('scan_success');
   };
 
   const handleTerminateSession = async () => {
     await logoutOperative();
+    try {
+      localStorage.removeItem('aletheia_auth_session');
+      localStorage.setItem('aletheia_current_screen', 'login');
+    } catch {}
     setCurrentScreen('login');
     if (soundActive) playTacticalSound('alert_fabricated');
   };

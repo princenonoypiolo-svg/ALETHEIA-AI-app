@@ -125,10 +125,13 @@ export async function registerOperativeWithFirebase(
   } catch (fbAuthErr: any) {
     const code = fbAuthErr?.code || '';
     if (code === 'auth/email-already-in-use') {
-      throw new Error('An operative account with this identification already exists in Firebase. Please log in.');
+      throw new Error('An operative account with this identification already exists. Please switch to Log In.');
     }
-    console.info('Firebase auth notice:', code, fbAuthErr?.message);
-    // If auth/operation-not-allowed or network, we still secure the account in local cryptographic registry & Firestore
+    if (code === 'auth/weak-password') {
+      throw new Error('SECURITY REJECTED: Passphrase must be at least 6 characters.');
+    }
+    console.warn('Firebase registration notice (using secure local enclave fallback):', code, fbAuthErr?.message);
+    // If auth/operation-not-allowed or network, we still secure the account in local cryptographic registry
   }
 
   const fullProfile: OperativeProfile = {
@@ -256,11 +259,16 @@ export async function loginOperativeWithFirebase(
       };
     }
 
+    if (errorCode === 'auth/operation-not-allowed') {
+      throw new Error(
+        'FIREBASE SETUP: "Email/Password" sign-in is not enabled in your Firebase Console. Go to console.firebase.google.com -> alethea-ai-app -> Authentication -> Sign-in method -> Enable "Email/Password".'
+      );
+    }
+
     // If NO account exists in either Firebase or local registry:
     if (
       errorCode === 'auth/user-not-found' ||
       errorCode === 'auth/invalid-credential' ||
-      errorCode === 'auth/operation-not-allowed' ||
       !localAccount
     ) {
       throw new Error(
@@ -292,4 +300,23 @@ export async function logoutOperative(): Promise<void> {
 // Listen for Auth state changes
 export function subscribeToAuthState(callback: (user: FirebaseUser | null) => void) {
   return onAuthStateChanged(auth, callback);
+}
+
+// Instant Demo / Guest access for development and testing
+export function guestLoginOperative(): { user: Partial<FirebaseUser>; profile: OperativeProfile } {
+  const profile: OperativeProfile = {
+    name: 'Agent 01',
+    operativeId: 'VXP-8492',
+    clearance: 'OMEGA',
+    division: 'Cyber Threat Intelligence Division',
+    bio: 'Senior Analyst, Cyber Threat Intelligence Division. Responsible for continuous monitoring and verification protocols.',
+    avatarUrl: '',
+    twoFactorActive: true,
+    telemetrySharing: true,
+    locationTracking: false,
+  };
+  return {
+    user: { displayName: 'Agent 01', email: 'agent01@aletheia.internal' },
+    profile,
+  };
 }
